@@ -19,5 +19,5 @@ data class Metadata(
     val javaVersion: MetadataGroup? = null,
 
     @SerializedName("dependencies")
-    val dependencies: DependenciesContainer? = null
+    val dependencies: DependencyContainer? = null
 )

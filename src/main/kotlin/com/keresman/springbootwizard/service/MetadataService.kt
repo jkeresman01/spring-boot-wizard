@@ -7,7 +7,6 @@ import com.keresman.springbootwizard.model.Metadata
 import com.keresman.springbootwizard.utils.FileUtils
 import com.keresman.springbootwizard.utils.URLUtils
 import java.net.HttpURLConnection
-import java.util.concurrent.CompletableFuture
 
 class MetadataService {
     companion object {
@@ -19,14 +18,6 @@ class MetadataService {
     @Volatile
     private var isLoading = false
     private val gson = Gson()
-
-    fun interface MetadataCallback {
-        fun onMetadataLoaded(metadata: Metadata?, error: Exception?)
-    }
-
-    fun fetchMetadataAsync(): CompletableFuture<Metadata?> {
-        return CompletableFuture.supplyAsync { fetchMetadataSync() }
-    }
 
     fun fetchMetadataSync(): Metadata? {
         cachedMetadata?.let { return it }
@@ -76,10 +67,6 @@ class MetadataService {
                 "${URLUtils.encode(key)}=${URLUtils.encode(value)}"
             }
         return "$baseUrl/starter.zip?$queryString"
-    }
-
-    fun clearCache() {
-        cachedMetadata = null
     }
 
 

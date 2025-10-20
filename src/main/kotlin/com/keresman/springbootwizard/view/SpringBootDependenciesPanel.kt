@@ -7,7 +7,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.keresman.springbootwizard.model.Dependency
-import com.keresman.springbootwizard.model.DependenciesContainer
+import com.keresman.springbootwizard.model.DependencyContainer
 import com.keresman.springbootwizard.model.SpringInitializrSettings
 import javax.swing.*
 import javax.swing.event.DocumentEvent
@@ -15,7 +15,7 @@ import javax.swing.event.DocumentListener
 import java.awt.*
 
 class SpringBootDependenciesPanel(private val settings: SpringInitializrSettings) : JPanel(BorderLayout(10, 10)) {
-    private var dependenciesContainer: DependenciesContainer? = null
+    private var dependencyContainer: DependencyContainer? = null
 
     private val searchField = JBTextField()
     private val dependenciesPanel = JPanel().apply {
@@ -97,7 +97,7 @@ class SpringBootDependenciesPanel(private val settings: SpringInitializrSettings
         categoryPanels.clear()
         allDependencies.clear()
 
-        val container = this.dependenciesContainer ?: return
+        val container = this.dependencyContainer ?: return
         val groups = container.values
 
         groups?.forEach { group ->
@@ -259,8 +259,8 @@ class SpringBootDependenciesPanel(private val settings: SpringInitializrSettings
         selectedDependenciesPanel.repaint()
     }
 
-    fun setDependencies(dependenciesContainer: DependenciesContainer) {
-        this.dependenciesContainer = dependenciesContainer
+    fun setDependencies(dependencyContainer: DependencyContainer) {
+        this.dependencyContainer = dependencyContainer
         populateDependencies()
     }
 }
