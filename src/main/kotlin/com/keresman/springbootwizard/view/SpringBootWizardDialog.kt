@@ -5,11 +5,11 @@ import com.intellij.openapi.ui.Messages
 import com.keresman.springbootwizard.model.Metadata
 import com.keresman.springbootwizard.model.SpringInitializrSettings
 import com.keresman.springbootwizard.service.MetadataService
+import java.awt.*
 import javax.swing.*
-import java.awt.BorderLayout
-import java.awt.Dimension
 
 class SpringBootWizardDialog : DialogWrapper(true) {
+
     private val settings = SpringInitializrSettings()
     private val metadataService = MetadataService()
     private var metadata: Metadata? = null
@@ -22,78 +22,74 @@ class SpringBootWizardDialog : DialogWrapper(true) {
         title = "Spring Boot Project Wizard"
         isResizable = true
         init()
-        loadMetadata()
+        loadMetadataAsync()
     }
 
-    private fun loadMetadata() {
-        Thread {
-            try {
-                metadata = metadataService.fetchMetadataSync()
-                SwingUtilities.invokeLater {
-                    metadata?.let {
-                        settingsPanel.setMetadata(it)
-                        it.dependencies?.let { deps ->
-                            dependenciesPanel.setDependencies(deps)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                SwingUtilities.invokeLater {
-                    Messages.showErrorDialog(
-                        "Failed to load metadata: ${e.message}",
-                        "Error"
-                    )
-                }
-            }
-        }.start()
-    }
+    fun getSettings() = settings
+    fun getMetadataService() = metadataService
+    fun getMetadata() = metadata
 
     override fun createCenterPanel(): JComponent {
         val mainPanel = JPanel(BorderLayout()).apply {
             preferredSize = Dimension(550, 480)
         }
 
-        tabbedPane = JTabbedPane()
+        tabbedPane = JTabbedPane().apply {
+            settingsPanel = SpringBootSettingsPanel(settings)
+            addTab("Configuration", settingsPanel)
 
-        settingsPanel = SpringBootSettingsPanel(settings)
-        tabbedPane.addTab("Configuration", settingsPanel)
-
-        dependenciesPanel = SpringBootDependenciesPanel(settings)
-        tabbedPane.addTab("Dependencies", dependenciesPanel)
+            dependenciesPanel = SpringBootDependenciesPanel(settings)
+            addTab("Dependencies", dependenciesPanel)
+        }
 
         mainPanel.add(tabbedPane, BorderLayout.CENTER)
         return mainPanel
     }
 
     override fun doOKAction() {
-        when {
-            settings.projectName.isEmpty() -> {
-                Messages.showErrorDialog(
-                    "Project name cannot be empty",
-                    "Validation Error"
-                )
-                return
-            }
-            settings.groupId.isEmpty() || settings.artifactId.isEmpty() -> {
-                Messages.showErrorDialog(
-                    "Group ID and Artifact ID must be set",
-                    "Validation Error"
-                )
-                return
-            }
-            settings.packageName.isEmpty() -> {
-                Messages.showErrorDialog(
-                    "Package name must be set",
-                    "Validation Error"
-                )
-                return
-            }
-        }
-
+        if (!isFormValid()) return
         super.doOKAction()
     }
 
-    fun getSettings() = settings
-    fun getMetadataService() = metadataService
-    fun getMetadata() = metadata
+    private fun loadMetadataAsync() {
+        Thread {
+            try {
+                val fetchedMetadata = metadataService.fetchMetadataSync()
+                SwingUtilities.invokeLater { applyMetadata(fetchedMetadata) }
+            } catch (e: Exception) {
+                SwingUtilities.invokeLater { showMetadataError(e) }
+            }
+        }.start()
+    }
+
+    private fun applyMetadata(metadata: Metadata?) {
+        if (metadata == null) return
+
+        this.metadata = metadata
+        settingsPanel.setMetadata(metadata)
+        metadata.dependencies?.let { dependenciesPanel.setDependencies(it) }
+    }
+
+    private fun showMetadataError(e: Exception) {
+        Messages.showErrorDialog(
+            "Failed to load metadata: ${e.message}",
+            "Error"
+        )
+    }
+
+    private fun isFormValid(): Boolean {
+        return when {
+            settings.projectName.isBlank() -> showValidationError("Project name cannot be empty")
+            settings.groupId.isBlank() || settings.artifactId.isBlank() ->
+                showValidationError("Group ID and Artifact ID must be set")
+            settings.packageName.isBlank() ->
+                showValidationError("Package name must be set")
+            else -> true
+        }
+    }
+
+    private fun showValidationError(message: String): Boolean {
+        Messages.showErrorDialog(message, "Validation Error")
+        return false
+    }
 }

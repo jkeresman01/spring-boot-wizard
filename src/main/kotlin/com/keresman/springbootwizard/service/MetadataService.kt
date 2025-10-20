@@ -38,7 +38,6 @@ class MetadataService {
         }
     }
 
-
     fun downloadProjectZip(downloadUrl: String): ByteArray {
         LOG.info("Downloading project from: $downloadUrl")
 
@@ -58,7 +57,6 @@ class MetadataService {
         }
     }
 
-
     fun buildDownloadUrl(baseUrl: String, params: Map<String, String>): String {
         val queryString = params
             .filterValues { it.isNotEmpty() }
@@ -69,7 +67,6 @@ class MetadataService {
         return "$baseUrl/starter.zip?$queryString"
     }
 
-
     private fun waitForCachedMetadata(): Metadata? {
         return try {
             Thread.sleep(100)
@@ -79,7 +76,6 @@ class MetadataService {
             null
         }
     }
-
 
     private fun parseAndCacheMetadata(jsonResponse: String): Metadata? {
         return try {

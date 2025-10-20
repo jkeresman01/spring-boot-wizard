@@ -1,21 +1,16 @@
 package com.keresman.springbootwizard.view
 
-import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.*
 import com.intellij.util.ui.JBUI
-import com.keresman.springbootwizard.model.Metadata
-import com.keresman.springbootwizard.model.MetadataOption
-import com.keresman.springbootwizard.model.SpringInitializrSettings
+import com.keresman.springbootwizard.listeners.SimpleDocumentListener
+import com.keresman.springbootwizard.model.*
+import java.awt.*
 import javax.swing.*
-import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.text.JTextComponent
-import java.awt.Font
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
 
 class SpringBootSettingsPanel(private val settings: SpringInitializrSettings) : JPanel(GridBagLayout()) {
+
     private var metadata: Metadata? = null
 
     private val groupIdField = JBTextField(settings.groupId, 12)
@@ -35,16 +30,28 @@ class SpringBootSettingsPanel(private val settings: SpringInitializrSettings) : 
 
     init {
         border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        initComponents()
+        initListeners()
         layoutComponents()
     }
 
-    private fun initComponents() {
-        groupIdField.document?.addDocumentListener(createDocumentListener(groupIdField) { settings.groupId = it })
-        artifactIdField.document?.addDocumentListener(createDocumentListener(artifactIdField) { settings.artifactId = it })
-        packageNameField.document?.addDocumentListener(createDocumentListener(packageNameField) { settings.packageName = it })
-        descriptionField.document?.addDocumentListener(createDocumentListener(descriptionField) { settings.description = it })
+    fun setMetadata(metadata: Metadata) {
+        this.metadata = metadata
+        populateCombos(metadata)
+    }
 
+    private fun initListeners() {
+        addFieldListeners()
+        addComboListeners()
+    }
+
+    private fun addFieldListeners() {
+        groupIdField.addListener { settings.groupId = it }
+        artifactIdField.addListener { settings.artifactId = it }
+        packageNameField.addListener { settings.packageName = it }
+        descriptionField.addListener { settings.description = it }
+    }
+
+    private fun addComboListeners() {
         languageCombo.addActionListener {
             (languageCombo.selectedItem as? String)?.let { settings.language = it }
         }
@@ -64,7 +71,6 @@ class SpringBootSettingsPanel(private val settings: SpringInitializrSettings) : 
 
     private fun layoutComponents() {
         var row = 0
-
         addGroupLabel("Language & Build", row++)
         addField("Language:", languageCombo, row++)
         addField("Type:", projectTypeCombo, row++)
@@ -78,59 +84,70 @@ class SpringBootSettingsPanel(private val settings: SpringInitializrSettings) : 
         addField("Package Name:", packageNameField, row++)
         addField("Description:", JBScrollPane(descriptionField), row++)
 
-        // Add glue to push everything to top
-        val gbc = GridBagConstraints().apply {
-            weighty = 1.0
-            fill = GridBagConstraints.BOTH
-            gridx = 0
-            gridy = row
-            gridwidth = 2
-        }
-        add(Box.createVerticalGlue(), gbc)
+        addGlue(row)
     }
 
     private fun addGroupLabel(text: String, row: Int) {
-        val gbc = GridBagConstraints().apply {
+        val gbc = constraints(row, 0, 2).apply {
             fill = GridBagConstraints.HORIZONTAL
-            JBUI.insets(10, 5, 8, 5).also { insets = it }
-            gridx = 0
-            gridy = row
-            gridwidth = 2
+            insets = JBUI.insets(10, 5, 8, 5)
         }
-
-        val label = JBLabel(text).apply {
-            font = font.deriveFont(Font.BOLD, 12f)
-        }
+        val label = JBLabel(text).apply { font = font.deriveFont(Font.BOLD, 12f) }
         add(label, gbc)
     }
 
     private fun addField(label: String, component: JComponent, row: Int) {
-        val gbc1 = GridBagConstraints().apply {
-            insets = JBUI.insets(2, 5)
-            gridx = 0
-            gridy = row
+        val labelConstraints = constraints(row, 0).apply {
             anchor = GridBagConstraints.NORTHWEST
-        }
-        add(JLabel(label).apply { font = font.deriveFont(11f) }, gbc1)
-
-        val gbc2 = GridBagConstraints().apply {
             insets = JBUI.insets(2, 5)
-            gridx = 1
-            gridy = row
+        }
+        val fieldConstraints = constraints(row, 1).apply {
+            insets = JBUI.insets(2, 5)
             fill = GridBagConstraints.HORIZONTAL
             weightx = 1.0
         }
-        add(component, gbc2)
+
+        add(JLabel(label).apply { font = font.deriveFont(11f) }, labelConstraints)
+        add(component, fieldConstraints)
     }
 
-    private fun addCheckBox(label: String, row: Int) {
-        val gbc = GridBagConstraints().apply {
-            insets = JBUI.insets(2, 5)
-            gridx = 1
-            gridy = row
-            anchor = GridBagConstraints.WEST
+    private fun addGlue(row: Int) {
+        val gbc = constraints(row, 0, 2).apply {
+            weighty = 1.0
+            fill = GridBagConstraints.BOTH
         }
-        add(JCheckBox(label).apply { font = font.deriveFont(11f) }, gbc)
+        add(Box.createVerticalGlue(), gbc)
+    }
+
+    private fun populateCombos(metadata: Metadata) {
+        populateCombo(languageCombo, metadata.language?.values?.map { it.name }, settings.language)
+        populateCombo(projectTypeCombo, metadata.type?.values?.map { it.name }, "Gradle - Groovy")
+
+        populateCombo(bootVersionCombo, metadata.bootVersion?.values, metadata.bootVersion?.values
+            ?.firstOrNull { it.id.contains(settings.bootVersion) })
+
+        populateCombo(packagingCombo, metadata.packaging?.values?.map { it.name }, settings.packaging)
+
+        populateCombo(javaVersionCombo, metadata.javaVersion?.values, metadata.javaVersion?.values
+            ?.firstOrNull { it.id == settings.javaVersion })
+    }
+
+    private fun <T> populateCombo(combo: JComboBox<T>, items: List<T>?, selected: Any?) {
+        combo.removeAllItems()
+        items?.forEach { combo.addItem(it) }
+        combo.selectedItem = selected
+    }
+
+    private fun constraints(row: Int, col: Int, width: Int = 1): GridBagConstraints {
+        return GridBagConstraints().apply {
+            gridx = col
+            gridy = row
+            gridwidth = width
+        }
+    }
+
+    private fun JTextComponent.addListener(consumer: (String) -> Unit) {
+        document?.addDocumentListener(createDocumentListener(this, consumer))
     }
 
     private fun createDocumentListener(component: JTextComponent, consumer: (String) -> Unit): DocumentListener {
@@ -140,38 +157,4 @@ class SpringBootSettingsPanel(private val settings: SpringInitializrSettings) : 
             }
         }
     }
-
-    fun setMetadata(metadata: Metadata) {
-        this.metadata = metadata
-
-        languageCombo.removeAllItems()
-        metadata.language?.values?.forEach { languageCombo.addItem(it.name) }
-        languageCombo.selectedItem = settings.language
-
-        projectTypeCombo.removeAllItems()
-        metadata.type?.values?.forEach { projectTypeCombo.addItem(it.name) }
-        projectTypeCombo.selectedItem = "Gradle - Groovy"
-
-        bootVersionCombo.removeAllItems()
-        metadata.bootVersion?.values?.forEach { bootVersionCombo.addItem(it) }
-        bootVersionCombo.selectedItem = metadata.bootVersion?.values
-            ?.firstOrNull { it.id.contains(settings.bootVersion) }
-
-        packagingCombo.removeAllItems()
-        metadata.packaging?.values?.forEach { packagingCombo.addItem(it.name) }
-        packagingCombo.selectedItem = settings.packaging
-
-        javaVersionCombo.removeAllItems()
-        metadata.javaVersion?.values?.forEach { javaVersionCombo.addItem(it) }
-        javaVersionCombo.selectedItem = metadata.javaVersion?.values
-            ?.firstOrNull { it.id == settings.javaVersion }
-    }
-}
-
-abstract class SimpleDocumentListener : DocumentListener {
-    protected abstract fun update()
-
-    override fun insertUpdate(e: DocumentEvent) = update()
-    override fun removeUpdate(e: DocumentEvent) = update()
-    override fun changedUpdate(e: DocumentEvent) = update()
 }
