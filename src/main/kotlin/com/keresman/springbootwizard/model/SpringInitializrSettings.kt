@@ -1,9 +1,9 @@
 package com.keresman.springbootwizard.model
+
 class SpringInitializrSettings {
 
     var serverUrl: String = "https://start.spring.io"
     var projectName: String = "demo"
-    var projectPath: String? = null
 
     var projectType: String = "gradle-project"
     var language: String = "Java"
