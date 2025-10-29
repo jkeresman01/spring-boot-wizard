@@ -1,7 +1,7 @@
 <div align="center">
 
   <h1>spring-boot-wizard</h1>
-  <h4>Spring Boot wizard</h4>
+  <h4>Spring Boot starter</h4>
   <h6> IntelliJ IDEA Community Edition </h4>
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
